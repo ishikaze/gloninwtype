@@ -4,6 +4,7 @@ let timer = 5;
 let tuto = true;
 let restartTimer = false;
 let gameEnd = false;
+let isResetting = false;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -37,71 +38,94 @@ function closeTuto() {
     }, 10);
 }
 
-function setRandomGlon() {
-    highlightIndex = 0;
-    gameEnd = false;
-    // const randomGlon = glons[Math.floor(Math.random() * glons.length)];
-    const randomGlon = glons[0];
+function setRandomGlon(skipHighlight = false) {
+    const randomGlon = glons[Math.floor(Math.random() * glons.length)];
     localStorage.setItem('currentGlon', JSON.stringify(randomGlon));
     const glonElement = document.getElementById('glon-section');
-    const glonSet = document.getElementById('glon-set');
-    const glonTopic = document.getElementById('glon-topic');
 
     glonElement.innerHTML = ''; // Clear existing content
 
     for (let i = 0; i < randomGlon["บทประพันธ์"].length; i++) {
-        const line = document.createElement('p'); // Create a new paragraph element
-        line.textContent = randomGlon["บทประพันธ์"][i]; // Set its text content
+        const line = document.createElement('p');
+        line.textContent = randomGlon["บทประพันธ์"][i];
 
-        // Check if it's the first line (index 0)
         if (i === 0) {
-            line.style.textIndent = '2em'; // Add indentation, adjust value as needed
-    
+            line.style.textIndent = '2em';
         }
-
-        glonElement.appendChild(line); // Append it to the glonElement
+        glonElement.appendChild(line);
     }
-    highlight()
+    if (!skipHighlight) {
+        // This is for initial load or when setRandomGlon is called without skipHighlight
+        setTimeout(() => { highlight(); }, 100);
+    }
 }
 
+/* CORRECTED highlight function for glon change highlighting */
 function highlight() {
+    // Check if a reset is in progress. If so, only allow the *final* highlight call
+    // after the reset flag is cleared.
+    if (isResetting && highlightIndex === 0) { // Allow the initial highlight after reset
+        // This means it's the highlight call that was explicitly made *after* setRandomGlon(true)
+        // and after isResetting was set to false.
+        // Or, more simply, just prevent other calls while resetting, and trust the final call.
+    } else if (isResetting) {
+        return; // Prevent any other highlight calls while reset is active
+    }
+
+
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
     document.querySelector('input[name="answer"]').value = '';
     setTimeout(() => {
         document.querySelector('input[name="answer"]').focus();
     }, 10);
 
-    if (highlightIndex > 6) {
-        highlightIndex = 0;
-        setRandomGlon();
-        return; // After resetting, exit to let setRandomGlon call highlight
+    // If highlightIndex has gone past the available words to highlight, reset the glon
+    if (highlightIndex >= randomGlon["highlight"].length) {
+        isResetting = true; // Set the flag immediately
+        setTimeout(() => {
+            highlightIndex = 0;
+            setRandomGlon(true); // Load a new glon without immediately calling highlight
+
+            // *** CRUCIAL CHANGE HERE ***
+            // Reset isResetting to false *before* calling highlight for the new glon
+            isResetting = false; 
+            highlight();        // Then call highlight to show the first word of the new glon
+            // No need to set isResetting to false again, as it's done above
+        }, 200);
+        return;
     }
 
-    const paragraph = document.getElementById('glon-section');
-    // Clear previous highlights and store original HTML
-    const originalHTML = paragraph.innerHTML.replace(/<mark class="highlight">(.*?)<\/mark>/gi, '$1');
+    const glonElement = document.getElementById('glon-section');
+    const paragraphs = glonElement.querySelectorAll('p');
 
-    let desiredIndex = highlightIndex;
-    const textToHighlight = randomGlon["highlight"][desiredIndex];
-    const regex = new RegExp(textToHighlight, 'gi');
-    let matches = [];
-    let match;
+    // First, remove any existing highlights from all paragraphs
+    paragraphs.forEach(p => {
+        p.innerHTML = p.innerHTML.replace(/<mark class="highlight">(.*?)<\/mark>/gi, '$1');
+    });
 
-    // Find all matches
-    while ((match = regex.exec(originalHTML)) !== null) {
-        matches.push({ index: match.index, length: match[0].length });
-    }
+    // Get the word to highlight based on the current highlightIndex
+    const textToHighlight = randomGlon["highlight"][highlightIndex];
+    
+    // Escape special characters for regex
+    const escapedTextToHighlight = textToHighlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedTextToHighlight})`, 'g'); // Capture group for replacement
 
-    if (matches.length > 0) {
-        // If desired index is out of bounds, lower it until valid
-        while (desiredIndex >= matches.length) {
-            desiredIndex--;
+    let foundHighlight = false;
+    // Iterate through paragraphs to find and highlight the word
+    for (let i = 0; i < paragraphs.length; i++) {
+        const p = paragraphs[i];
+        const originalText = p.textContent; // Use textContent to avoid issues with existing HTML
+
+        // Check if the word exists in this paragraph
+        if (regex.test(originalText)) {
+            p.innerHTML = originalText.replace(regex, '<mark class="highlight">$1</mark>');
+            foundHighlight = true;
+            break; // Stop after highlighting the first match for the current word
         }
-        const matchToHighlight = matches[desiredIndex];
-        const before = originalHTML.substring(0, matchToHighlight.index);
-        const highlighted = `<mark class="highlight">` + originalHTML.substr(matchToHighlight.index, matchToHighlight.length) + `</mark>`;
-        const after = originalHTML.substring(matchToHighlight.index + matchToHighlight.length);
-        paragraph.innerHTML = before + highlighted + after;
+    }
+
+    if (!foundHighlight) {
+        console.warn(`Text to highlight "${textToHighlight}" for index ${highlightIndex} not found in current glon.`);
     }
 
     highlightIndex++;
@@ -111,7 +135,6 @@ function highlight() {
 function checkAnswer() {
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
     const userInput = document.getElementById('answer-input').value.trim();
-    const resultElement = document.getElementById('result');
 
     if (userInput === randomGlon["answers"][highlightIndex - 1]) {
         showResult('ถูกต้อง!', "#46ff40")
@@ -120,7 +143,7 @@ function checkAnswer() {
         highlight();
     } else {
         showResult('ผิด!', "#FF0000")
-        console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`); // For debugging
+        console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`);
     }
 }
 
