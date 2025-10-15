@@ -8,6 +8,35 @@ let gameEnd = false;
 let isResetting = false;
 let timerRunning = false; // Flag to indicate if the timer loop is active
 
+const correctSoundsList = [
+    'assets/sfx/correct1.mp3',
+    'assets/sfx/correct2.mp3',
+    'assets/sfx/correct3.mp3',
+    'assets/sfx/correct4.mp3',
+    'assets/sfx/correct5.mp3',
+    // 'assets/sfx/correct6.mp3',
+    'assets/sfx/correct7.mp3',
+    'assets/sfx/correct8.mp3',
+    'assets/sfx/correct9.mp3',
+];
+
+const wrongSoundsList = [
+    'assets/sfx/wrong1.mp3',
+    'assets/sfx/wrong2.mp3',
+    'assets/sfx/wrong3.mp3',
+    // 'assets/sfx/wrong4.mp3',
+    // 'assets/sfx/wrong5.mp3',
+    'assets/sfx/wrong6.mp3',
+    'assets/sfx/wrong7.mp3',
+    'assets/sfx/wrong8.mp3',
+];
+
+function getRandomSoundPath(soundList) {
+    const randomIndex = Math.floor(Math.random() * soundList.length);
+    return soundList[randomIndex];
+}
+
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -127,20 +156,51 @@ function highlight() {
     restartTimer = true; // Signal the timer to reset
 }
 
+async function playSound(soundPath) {
+    try {
+        // Create a *new* Audio object each time to allow for simultaneous playback
+        // if answers come in very quickly, and to ensure preload/playback from scratch.
+        const audioElement = new Audio(soundPath);
+        audioElement.preload = 'auto'; // Preload each new audio element
+        // audioElement.volume = 0.5; // Optionally set volume for each new element
+
+        await audioElement.play();
+
+        // Optional: Release resources after playback if needed, but modern browsers
+        // handle this fairly well. For very short sounds, it's often not critical.
+        audioElement.onended = () => {
+            audioElement.remove(); // Clean up the element after it finishes playing
+        };
+
+    } catch (error) {
+        console.warn('Audio playback prevented or failed:', error);
+    }
+}
+
 function checkAnswer() {
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
     const userInput = document.getElementById('answer-input').value.trim();
 
     if (userInput === randomGlon["answers"][highlightIndex - 1]) {
-        showResult('ถูกต้อง!', "#46ff40")
+        showResult('ถูกต้อง!', "#46ff40");
         score++;
         document.getElementById('score').textContent = `คะแนน: ${score}`;
-        highlight(); // Calls highlight, which sets restartTimer = true
+        
+        // Play a random correct sound
+        const soundPath = getRandomSoundPath(correctSoundsList);
+        playSound(soundPath);
+        
+        highlight();
     } else {
-        showResult('ผิด!', "#FF0000")
+        showResult('ผิด!', "#FF0000");
         console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`);
+        
+        // Play a random wrong sound
+        const soundPath = getRandomSoundPath(wrongSoundsList);
+        playSound(soundPath);
     }
 }
+
 
 function showResult(text, color) {
     const resultElement = document.getElementById('result');
