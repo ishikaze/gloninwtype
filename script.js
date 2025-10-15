@@ -1,4 +1,13 @@
 let highlightIndex = 0;
+let score = 0;
+let timer = 5;
+let tuto = true;
+let restartTimer = false;
+let gameEnd = false;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function switchToPage(name) {
     const pages = document.querySelectorAll('.page');
@@ -21,10 +30,18 @@ function closeTuto() {
         page.style.opacity = '0';
         page.style.pointerEvents = 'none';
     });
+    tuto = false;
+    startTimer()
+    setTimeout(() => {
+        document.querySelector('input[name="answer"]').focus();
+    }, 10);
 }
 
 function setRandomGlon() {
-    const randomGlon = glons[Math.floor(Math.random() * glons.length)];
+    highlightIndex = 0;
+    gameEnd = false;
+    // const randomGlon = glons[Math.floor(Math.random() * glons.length)];
+    const randomGlon = glons[0];
     localStorage.setItem('currentGlon', JSON.stringify(randomGlon));
     const glonElement = document.getElementById('glon-section');
     const glonSet = document.getElementById('glon-set');
@@ -49,6 +66,10 @@ function setRandomGlon() {
 
 function highlight() {
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
+    document.querySelector('input[name="answer"]').value = '';
+    setTimeout(() => {
+        document.querySelector('input[name="answer"]').focus();
+    }, 10);
 
     if (highlightIndex > 6) {
         highlightIndex = 0;
@@ -84,6 +105,7 @@ function highlight() {
     }
 
     highlightIndex++;
+    restartTimer = true;
 }
 
 function checkAnswer() {
@@ -92,10 +114,50 @@ function checkAnswer() {
     const resultElement = document.getElementById('result');
 
     if (userInput === randomGlon["answers"][highlightIndex - 1]) {
-        resultElement.textContent = "Correct!";
+        showResult('ถูกต้อง!', "#46ff40")
+        score++;
+        document.getElementById('score').textContent = `คะแนน: ${score}`;
         highlight();
     } else {
-        resultElement.textContent = "Incorrect. Please try again.";
+        showResult('ผิด!', "#FF0000")
         console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`); // For debugging
     }
+}
+
+function showResult(text, color) {
+    const resultElement = document.getElementById('result');
+    resultElement.textContent = text;
+    resultElement.style.color = color;
+    resultElement.style.opacity = '1';
+
+    setTimeout(() => {
+        resultElement.style.opacity = '0';
+    }, 1000);
+}
+
+async function startTimer() {
+    const timerElement = document.getElementById('timer');
+    timerElement.style.display = 'block';
+
+    for (let i = timer; i > -1; i--) {
+        if (tuto) {
+            return
+        }
+        if (restartTimer) {
+            restartTimer = false;
+            i = 5
+        }
+        if (gameEnd) {
+            return
+        }
+        timerElement.textContent = `เหลือเวลา ${i}s`;
+        await sleep(1000);
+    }
+
+    timerElement.style.display = 'none';
+    switchToPage('end');
+    document.getElementById('final-score').textContent = score;
+    score = 0;
+    document.getElementById('score').textContent = `คะแนน: ${score}`;
+    gameEnd = true;
 }

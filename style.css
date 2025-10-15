@@ -7,9 +7,9 @@
 :root {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --main-color: #616161;
-    --accent-color: #ff4081;
+    --accent-color: #46ff40;
     --background-color: #616161;
-    --background-color-sub: #757575;
+    --background-color-sub: #cecece;
     --text-color: #212121;
 }
 
@@ -38,6 +38,8 @@ button {
     width: 100vw;
     height: 100vh;
     background-color: var(--background-color);
+    background-image: url(./assets/images/image.png);
+    background-size: cover;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -82,6 +84,37 @@ button {
 #glon-section p {
     font-size: 1.5em;
     white-space: nowrap;
+}
+
+#answer-input {
+    position: absolute;
+    bottom: 2em;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 5em;
+    border-radius: 16px;
+    border: none;
+    padding: 0 1em;
+    font-size: 2em;
+}
+
+#timer {
+    position: absolute;
+    top: 1em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2em;
+    color: var(--text-color);
+}
+
+#result {
+    position: absolute;
+    bottom: 10em;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5em;
+    color: var(--accent-color);
 }
 
 @media screen and (max-width: 1100px) {
