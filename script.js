@@ -1,10 +1,12 @@
 let highlightIndex = 0;
 let score = 0;
-let timer = 5;
+let timerDuration = 5; // New variable for initial timer duration
+let currentTimer = timerDuration; // The actual countdown value
 let tuto = true;
 let restartTimer = false;
 let gameEnd = false;
 let isResetting = false;
+let timerRunning = false; // Flag to indicate if the timer loop is active
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -32,7 +34,7 @@ function closeTuto() {
         page.style.pointerEvents = 'none';
     });
     tuto = false;
-    startTimer()
+    startTimer(); // Start the timer when tutorial closes
     setTimeout(() => {
         document.querySelector('input[name="answer"]').focus();
     }, 10);
@@ -60,18 +62,12 @@ function setRandomGlon(skipHighlight = false) {
     }
 }
 
-/* CORRECTED highlight function for glon change highlighting */
 function highlight() {
-    // Check if a reset is in progress. If so, only allow the *final* highlight call
-    // after the reset flag is cleared.
-    if (isResetting && highlightIndex === 0) { // Allow the initial highlight after reset
-        // This means it's the highlight call that was explicitly made *after* setRandomGlon(true)
-        // and after isResetting was set to false.
-        // Or, more simply, just prevent other calls while resetting, and trust the final call.
-    } else if (isResetting) {
-        return; // Prevent any other highlight calls while reset is active
+    // If a reset is in progress, only prevent other calls while resetting.
+    // The final call after reset will proceed.
+    if (isResetting && highlightIndex > 0) { // Allow the initial highlight after reset
+        return;
     }
-
 
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
     document.querySelector('input[name="answer"]').value = '';
@@ -82,16 +78,15 @@ function highlight() {
     // If highlightIndex has gone past the available words to highlight, reset the glon
     if (highlightIndex >= randomGlon["highlight"].length) {
         isResetting = true; // Set the flag immediately
-        setTimeout(() => {
+        // Add a delay before loading the new glon
+        setTimeout(() => { // This outer setTimeout adds the delay before new glon appears
             highlightIndex = 0;
             setRandomGlon(true); // Load a new glon without immediately calling highlight
 
-            // *** CRUCIAL CHANGE HERE ***
             // Reset isResetting to false *before* calling highlight for the new glon
-            isResetting = false; 
+            isResetting = false;
             highlight();        // Then call highlight to show the first word of the new glon
-            // No need to set isResetting to false again, as it's done above
-        }, 200);
+        }, 500); // 500ms delay before loading and highlighting the new glon
         return;
     }
 
@@ -129,7 +124,7 @@ function highlight() {
     }
 
     highlightIndex++;
-    restartTimer = true;
+    restartTimer = true; // Signal the timer to reset
 }
 
 function checkAnswer() {
@@ -140,7 +135,7 @@ function checkAnswer() {
         showResult('ถูกต้อง!', "#46ff40")
         score++;
         document.getElementById('score').textContent = `คะแนน: ${score}`;
-        highlight();
+        highlight(); // Calls highlight, which sets restartTimer = true
     } else {
         showResult('ผิด!', "#FF0000")
         console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`);
@@ -161,26 +156,38 @@ function showResult(text, color) {
 async function startTimer() {
     const timerElement = document.getElementById('timer');
     timerElement.style.display = 'block';
+    timerRunning = true; // Set flag when timer starts
 
-    for (let i = timer; i > -1; i--) {
-        if (tuto) {
-            return
-        }
+    while (timerRunning && !gameEnd && !tuto) {
         if (restartTimer) {
+            currentTimer = timerDuration; // Reset to full duration
             restartTimer = false;
-            i = 5
         }
-        if (gameEnd) {
-            return
+
+        timerElement.textContent = `เหลือเวลา ${currentTimer}s`;
+
+        if (currentTimer <= 0) {
+            timerRunning = false; // Stop the loop
+            break; // Exit the loop immediately
         }
-        timerElement.textContent = `เหลือเวลา ${i}s`;
+
         await sleep(1000);
+        currentTimer--;
     }
 
+    if (gameEnd || tuto) { // If game ended or tutorial is active, just return
+        return;
+    }
+
+    // If loop finished because currentTimer <= 0
     timerElement.style.display = 'none';
     switchToPage('end');
     document.getElementById('final-score').textContent = score;
+    
+    // Reset game state for next potential game
     score = 0;
     document.getElementById('score').textContent = `คะแนน: ${score}`;
     gameEnd = true;
+    currentTimer = timerDuration; // Reset for next game
+    timerRunning = false; // Ensure flag is false
 }
