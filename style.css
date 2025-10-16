@@ -1,16 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Charm:wght@400;700&family=Noto+Sans+Thai:wght@100..900&display=swap');
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: 'Noto Sans Thai', sans-serif;
 }
 
 :root {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --main-color: #616161;
-    --accent-color: #46ff40;
+    --accent-color: #000000;
     --background-color: #616161;
     --background-color-sub: #cecece;
     --text-color: #212121;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.main-menu h1 {
+    font-family: 'Charm', sans-serif;
+}
+
+#transition {
+    position: fixed;
+    top: 0%;
+    left: 0%;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--background-color);
+    z-index: 9999;
+    opacity: 1;
+    transition: all 0.5s ease-in-out;
+    pointer-events: none;
 }
 
 #page-container {
@@ -19,7 +47,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: var(--background-color)
+    background-color: var(--background-color);
+    overflow: hidden;
 }
 
 #debug {
@@ -45,7 +74,7 @@ button {
     align-items: center;
     flex-direction: column;
     gap: 1em;
-    transition: all .2s ease;
+    transition: all .5s ease;
 }
 
 .main-menu h1 {
@@ -115,6 +144,7 @@ button {
     transform: translateX(-50%);
     font-size: 1.5em;
     color: var(--accent-color);
+    transition: all 0.05s linear;
 }
 
 @media screen and (max-width: 1100px) {

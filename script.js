@@ -8,6 +8,7 @@ let gameEnd = false;
 let isResetting = false;
 let timerRunning = false; // Flag to indicate if the timer loop is active
 
+
 const correctSoundsList = [
     'assets/sfx/correct1.mp3',
     'assets/sfx/correct2.mp3',
@@ -100,6 +101,7 @@ function highlight() {
 
     const randomGlon = JSON.parse(localStorage.getItem('currentGlon'));
     document.querySelector('input[name="answer"]').value = '';
+    document.querySelector('input[name="answer"]').disabled = false;
     setTimeout(() => {
         document.querySelector('input[name="answer"]').focus();
     }, 10);
@@ -107,6 +109,7 @@ function highlight() {
     // If highlightIndex has gone past the available words to highlight, reset the glon
     if (highlightIndex >= randomGlon["highlight"].length) {
         isResetting = true; // Set the flag immediately
+        transitionPage();
         // Add a delay before loading the new glon
         setTimeout(() => { // This outer setTimeout adds the delay before new glon appears
             highlightIndex = 0;
@@ -115,7 +118,7 @@ function highlight() {
             // Reset isResetting to false *before* calling highlight for the new glon
             isResetting = false;
             highlight();        // Then call highlight to show the first word of the new glon
-        }, 500); // 500ms delay before loading and highlighting the new glon
+        }, 250); // 500ms delay before loading and highlighting the new glon
         return;
     }
 
@@ -182,7 +185,7 @@ function checkAnswer() {
     const userInput = document.getElementById('answer-input').value.trim();
 
     if (userInput === randomGlon["answers"][highlightIndex - 1]) {
-        showResult('ถูกต้อง!', "#46ff40");
+        showResult('ถูกต้อง!', "#00a51bff");
         score++;
         document.getElementById('score').textContent = `คะแนน: ${score}`;
         
@@ -192,7 +195,7 @@ function checkAnswer() {
         
         highlight();
     } else {
-        showResult('ผิด!', "#FF0000");
+        showResult('ผิด!', "#b30505ff");
         console.log(`Expected: ${randomGlon["answers"][highlightIndex - 1]}, but got: ${userInput}`);
         
         // Play a random wrong sound
@@ -207,6 +210,11 @@ function showResult(text, color) {
     resultElement.textContent = text;
     resultElement.style.color = color;
     resultElement.style.opacity = '1';
+    resultElement.style.bottom = '11em';
+
+    setTimeout(() => {
+        resultElement.style.bottom = '10em';
+    }, 100);
 
     setTimeout(() => {
         resultElement.style.opacity = '0';
@@ -245,9 +253,28 @@ async function startTimer() {
     document.getElementById('final-score').textContent = score;
     
     // Reset game state for next potential game
+    transitionPage();
     score = 0;
     document.getElementById('score').textContent = `คะแนน: ${score}`;
     gameEnd = true;
     currentTimer = timerDuration; // Reset for next game
     timerRunning = false; // Ensure flag is false
+    document.querySelector('input[name="answer"]').disabled = true;
 }
+
+let transitionToggle = true
+
+function transitionPage() {
+    if (transitionToggle) {
+        transitionToggle = false;
+        const transitionElement = document.getElementById('transition');
+        transitionElement.style.left = '100%';
+    } else {
+        transitionToggle = true;
+        const transitionElement = document.getElementById('transition');
+        transitionElement.style.left = '-100%';
+    }
+}
+
+transitionPage();
+transitionPage();
